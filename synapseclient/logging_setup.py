@@ -25,6 +25,7 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 
 DEBUG_LOGGER_NAME = 'synapseclient_debug'
 DEFAULT_LOGGER_NAME = 'synapseclient_default'
+SILENT_LOGGER_NAME = 'synapseclient_silent'
 
 
 class LoggingInfoOnlyFilter(logging.Filter):
@@ -48,7 +49,7 @@ class LoggingIgnoreInfoFilter(logging.Filter):
 #
 # see https://docs.python.org/2/library/logging.html
 ######################################################
-#TODO: debug file also or only write errors to log?
+# TODO: debug file also or only write errors to log?
 logging_config.dictConfig({
     'version': 1,
     'disable_existing_loggers': False,
@@ -59,29 +60,29 @@ logging_config.dictConfig({
         'brief_format': {
             'format': '%(message)s'
         },
-        'warning_format':{
+        'warning_format': {
             'format': '[%(levelname)s] %(message)s'
         }
     },
-    'filters':{
+    'filters': {
         'info_only': {
             '()': LoggingInfoOnlyFilter
         },
-        'ignore_info':{
+        'ignore_info': {
             '()': LoggingIgnoreInfoFilter
         }
     },
     'handlers': {
         'info_only_stdout': {
-            'level':'INFO',
-            'class':'logging.StreamHandler',
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
             'formatter': 'brief_format',
             'stream': 'ext://sys.stdout',
             'filters': ['info_only']
         },
-        'debug_stderr':{
+        'debug_stderr': {
             'level': 'DEBUG',
-            'class':'logging.StreamHandler',
+            'class': 'logging.StreamHandler',
             'formatter': 'debug_format',
             'stream': 'ext://sys.stderr'
         },
@@ -90,7 +91,7 @@ logging_config.dictConfig({
             'class': 'logging.StreamHandler',
             'formatter': 'warning_format',
             'stream': 'ext://sys.stderr',
-        }
+        },
         # ,
         # "error_to_file": {
         #     "class": "logging.handlers.RotatingFileHandler",
@@ -104,14 +105,20 @@ logging_config.dictConfig({
     },
     'loggers': {
         DEFAULT_LOGGER_NAME: {
-            'handlers': ['info_only_stdout', 'warning_stderr'], #TODO: add 'error_to_file' back in after we find solution for multi process logging
+            # TODO: add 'error_to_file' back in after we find solution for multi process logging
+            'handlers': ['info_only_stdout', 'warning_stderr'],
             'level': 'INFO',
             'propagate': True
         },
-        DEBUG_LOGGER_NAME:{
+        DEBUG_LOGGER_NAME: {
             'handlers': ['info_only_stdout', 'debug_stderr'],
             'level': 'DEBUG',
             'propagate': True
+        },
+        SILENT_LOGGER_NAME: {
+            'handlers': [],
+            'level': 'INFO',
+            'propagate': False
         }
     }
 })

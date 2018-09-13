@@ -16,6 +16,7 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
+import logging
 import uuid
 import os
 import sys
@@ -23,17 +24,20 @@ import shutil
 import six
 import tempfile
 
-from synapseclient import Entity, Project, Folder, File, Evaluation
+from synapseclient import Entity, Project
+from synapseclient.logging_setup import SILENT_LOGGER_NAME
 import synapseclient
 import synapseclient.utils as utils
 
 
-QUERY_TIMEOUT_SEC = 20
+QUERY_TIMEOUT_SEC = 25
+
 
 def setup_module(module):
     print("Python version:", sys.version)
 
-    syn = synapseclient.Synapse(debug=True, skip_checks=True)
+    syn = synapseclient.Synapse(debug=False, skip_checks=True)
+    syn.logger = logging.getLogger(SILENT_LOGGER_NAME)
 
     print("Testing against endpoints:")
     print("  " + syn.repoEndpoint)
@@ -50,27 +54,11 @@ def setup_module(module):
     schedule_for_cleanup(project)
     module.project = project
 
-    #set the working directory to a temp directory
+    # set the working directory to a temp directory
     module._old_working_directory = os.getcwd()
     working_directory = tempfile.mkdtemp(prefix="someTestFolder")
     schedule_for_cleanup(working_directory)
     os.chdir(working_directory)
-
-    # Some of these tests require a second user
-    config = configparser.ConfigParser()
-    config.read(synapseclient.client.CONFIG_FILE)
-    module.other_user = {}
-    try:
-        other_user['username'] = config.get('test-authentication', 'username')
-        other_user['password'] = config.get('test-authentication', 'password')
-        other_user['principalId'] = config.get('test-authentication', 'principalId')
-    except configparser.Error:
-        print("[test-authentication] section missing from the configuration file")
-
-    if 'principalId' not in other_user:
-        # Fall back on the synapse-test user
-        other_user['principalId'] = 1560252
-        other_user['username'] = 'synapse-test'
 
 
 def teardown_module(module):
@@ -99,9 +87,10 @@ def cleanup(items):
                 try:
                     if os.path.isdir(item):
                         shutil.rmtree(item)
-                    else: #Assum that remove will work on antyhing besides folders
+                    else:  # Assume that remove will work on anything besides folders
                         os.remove(item)
                 except Exception as ex:
                     print(ex)
         else:
             sys.stderr.write('Don\'t know how to clean: %s' % str(item))
+    syn.purge_trash_can()
